@@ -1,0 +1,65 @@
+name: Validate Source Code
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        default: '["gcc", "lite", "2204"]'
+      runner-arch:
+        type: string
+        default: 'x86_64'
+      options:
+        type: string
+        default: 'auto_features=enabled'
+      plugin:
+        type: string
+        default: ''
+    secrets:
+      GIT_CLONE_PAT:
+        required: false
+      AWS_ACCESS_KEY:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+
+jobs:
+  linter_super_linter:
+    name: Lint Python/Shell/GHActions/Markdown/YAML/JS
+    runs-on: [self-hosted, x86_64, "${{ fromJSON(inputs.runner) }}"]
+
+    permissions:
+      contents: read
+      packages: read
+      statuses: write
+
+    steps:
+      - name: Checkout .github directory
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+          repository: ${{ (inputs.plugin != '' && 'nubificus/vaccel') || '' }}
+          ref: ${{ (inputs.plugin != '' && 'main') || '' }}
+
+      - name: Initialize workspace
+        id: initialize_workspace
+        uses: ./.github/actions/initialize-workspace
+        with:
+          fetch-depth: 0
+          remote-actions-repo: ${{ (inputs.plugin != '' && 'nubificus/vaccel') || '' }}
+          token: ${{ secrets.GIT_CLONE_PAT || github.token }}
+
+      - name: Run super-linter
+        uses: super-linter/super-linter@v6
+        env:
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENABLE_GITHUB_ACTIONS_STEP_SUMMARY: false
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_PYTHON_RUFF: true
+          VALIDATE_BASH: true
+          VALIDATE_SHELL_SHFMT: true
+          VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_YAML: true
+          VALIDATE_JAVASCRIPT_ES: true
