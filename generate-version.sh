@@ -4,7 +4,7 @@
 SRC_DIR=$1
 DEFAULT_VERSION="v0.0.0"
 
-[ -n "${SRC_DIR}" ] || SRC_DIR="$(dirname "$0")/.."
+[ -n "${SRC_DIR}" ] || SRC_DIR="."
 
 if [ -f "${SRC_DIR}/.version" ]; then
 	cat "${SRC_DIR}/.version"

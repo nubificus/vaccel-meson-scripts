@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # generate .version file
+SCRIPTS_DIR=$(cd -- "$(dirname -- "$0")" >/dev/null && pwd -P)
 cd "${MESON_SOURCE_ROOT}" || exit 1
-VERSION="$(sh ./scripts/generate-version.sh "" --no-dirty)"
+VERSION="$(sh "${SCRIPTS_DIR}"/generate-version.sh "" --no-dirty)"
 echo "${VERSION}" >"${MESON_DIST_ROOT}/.version"
 
 # parse script args
