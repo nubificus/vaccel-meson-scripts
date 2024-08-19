@@ -1,0 +1,29 @@
+name: Verify
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [synchronize, labeled]
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate_files_and_commits:
+    name: Validate Files and Commits
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}
+    uses: nubificus/vaccel/.github/workflows/validate-files-and-commits.yml@main
+    with:
+      plugin: 'scripts'
+    secrets: inherit
+
+  validate_code:
+    name: Validate Code
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}
+    uses: ./.github/workflows/validate-code.yml
+    with:
+      plugin: 'scripts'
+    secrets: inherit
