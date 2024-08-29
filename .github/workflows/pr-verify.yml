@@ -27,3 +27,11 @@ jobs:
     with:
       plugin: 'scripts'
     secrets: inherit
+
+  # Dummy job for setting required checks
+  jobs_completed:
+    needs: [validate_files_and_commits, validate_code]
+    name: Jobs Completed
+    runs-on: self-hosted
+    steps:
+      - run: exit 0
