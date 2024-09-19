@@ -1,6 +1,8 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 
+set -e
+
 # generate .version file
 SCRIPTS_DIR=$(cd -- "$(dirname -- "$0")" >/dev/null && pwd -P)
 cd "${MESON_SOURCE_ROOT}" || exit 1
