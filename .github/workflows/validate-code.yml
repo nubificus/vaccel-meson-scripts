@@ -3,18 +3,24 @@ name: Validate Source Code
 on:
   workflow_call:
     inputs:
+      actions-repo:
+        type: string
+        default: 'nubificus/vaccel'
+      actions-rev:
+        type: string
+        default: 'main'
       runner:
         type: string
-        default: '["gcc", "lite", "2204"]'
-      runner-arch:
+        default: '["gcc", "dind", "2204"]'
+      runner-archs:
         type: string
-        default: 'x86_64'
+        default: '["amd64"]'
+      runner-arch-map:
+        type: string
+        default: '[{"amd64":"x86_64", "arm64":"aarch64", "arm":"armv7l"}]'
       options:
         type: string
         default: 'auto_features=enabled'
-      plugin:
-        type: string
-        default: ''
     secrets:
       GIT_CLONE_PAT:
         required: false
@@ -23,30 +29,34 @@ on:
       AWS_SECRET_ACCESS_KEY:
         required: false
 
-jobs:
-  linter_super_linter:
-    name: Lint Python/Shell/GHActions/Markdown/YAML/JS
-    runs-on: [self-hosted, x86_64, "${{ fromJSON(inputs.runner) }}"]
+env:
+  ACTIONS_REV: ${{ (github.repository != inputs.actions-repo) && inputs.actions-rev || '' }}
 
+jobs:
+  linter-super-linter:
+    name: Lint Python/Shell/GHActions/Markdown/YAML/JS
+    runs-on: ${{ format('{0}-{1}', join(fromJSON(inputs.runner), '-'), matrix.arch) }}
+    strategy:
+      matrix:
+        arch: ["${{ fromJSON(inputs.runner-archs) }}"]
+      fail-fast: false
     permissions:
       contents: read
       packages: read
       statuses: write
-
     steps:
       - name: Checkout .github directory
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github
-          repository: ${{ (inputs.plugin != '' && 'nubificus/vaccel') || '' }}
-          ref: ${{ (inputs.plugin != '' && 'main') || '' }}
+          repository: ${{ inputs.actions-repo }}
+          ref: ${{ env.ACTIONS_REV }}
 
       - name: Initialize workspace
-        id: initialize_workspace
         uses: ./.github/actions/initialize-workspace
         with:
           fetch-depth: 0
-          remote-actions-repo: ${{ (inputs.plugin != '' && 'nubificus/vaccel') || '' }}
+          remote-actions-repo: ${{ inputs.actions-repo }}
           token: ${{ secrets.GIT_CLONE_PAT || github.token }}
 
       - name: Run super-linter

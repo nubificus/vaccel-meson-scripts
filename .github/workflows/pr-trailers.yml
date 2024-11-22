@@ -9,10 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  git_trailers:
+  git-trailers:
     name: Add Git Trailers to PR commits
-    if: ${{ github.event.review.state == 'approved' }}
+    if: ${{ github.event.pull_request.base.ref == 'main' && github.event.review.state == 'approved' }}
     uses: nubificus/vaccel/.github/workflows/add-git-trailers.yml@main
-    with:
-      plugin: 'scripts'
     secrets: inherit
