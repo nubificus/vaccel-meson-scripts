@@ -18,7 +18,7 @@ if [ ! -d "${SRC_DIR}/.git" ]; then
 	exit 1
 fi
 
-VERSION=$(git describe --abbrev=8 --tags --match "v[0-9]*" 2>/dev/null)
+VERSION=$(git describe --abbrev=8 --tags --match "v[0-9]*" 2>/dev/null || echo)
 
 if [ -z "${VERSION}" ]; then
 	SHA=$(git describe --abbrev=8 --always 2>/dev/null)
