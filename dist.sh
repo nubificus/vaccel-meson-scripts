@@ -3,7 +3,12 @@
 
 set -e
 
-SCRIPT_NAME=$(basename "$0")
+_SH_SCRIPTS_DIR=$(cd -- "$(dirname -- "$0")" >/dev/null && pwd -P)
+# shellcheck disable=SC2034
+SH_SCRIPT_NAME=$(basename "$0")
+# shellcheck source=/dev/null
+. "${_SH_SCRIPTS_DIR}/_sh-common.sh"
+
 REPO_URL=$(git remote get-url origin |
 	sed 's/git@github.com:\(.*\)\.git/https:\/\/github.com\/\1/g')
 UPFULLNAME='Anastassios Nanos'
@@ -13,28 +18,13 @@ export DEBFULLNAME
 DEBEMAIL='papazof@nubificus.co.uk'
 export DEBEMAIL
 
-log_error() {
-	error=${1:-'Unknown error'}
-	code=${2:-1}
-	echo "${SCRIPT_NAME}: ${error} [error ${code}]" >&2
-	unset error
-	unset code
-}
-
-error() {
-	error_code=${2:-1}
-	log_error "$1" "${error_code}"
-	exit "${error_code}"
-}
-
 parse_args() {
 	short_opts='n:v:t:a:'
 	long_opts='pkg-name:,pkg-version:,build-type:,build-arg:,skip-deb'
 
 	if ! getopt=$(getopt -o "${short_opts}" --long "${long_opts}" \
 		-n "${SCRIPT_NAME}" -- "$@"); then
-		echo 'Failed to parse args' >&2
-		exit 1
+		sh_error 'Failed to parse args'
 	fi
 
 	eval set -- "$getopt"
@@ -45,19 +35,22 @@ parse_args() {
 		case "$1" in
 		'-n' | '--pkg-name')
 			# Package name
-			[ -z "$2" ] && error "'$1' requires a non-empty string"
+			[ -z "$2" ] &&
+				sh_error "'$1' requires a non-empty string"
 			pkg_name="$2"
 			shift 2
 			;;
 		'-v' | '--pkg-version')
 			# Package version
-			[ -z "$2" ] && error "'$1' requires a non-empty string"
+			[ -z "$2" ] &&
+				sh_error "'$1' requires a non-empty string"
 			pkg_version="$2"
 			shift 2
 			;;
 		'-t' | '--build-type')
 			# Build type
-			[ -z "$2" ] && error "'$1' requires a non-empty string"
+			[ -z "$2" ] &&
+				sh_error "'$1' requires a non-empty string"
 			build_type="$2"
 			shift 2
 			;;
@@ -66,7 +59,7 @@ parse_args() {
 			arg=$(echo "$2" | cut -d'=' -f1)
 			value=$(echo "$2" | cut -d'=' -f2-)
 			[ -z "${arg}" ] || [ -z "${value}" ] &&
-				error "'$1' requires a string of the form 'arg=value'"
+				sh_error "'$1' requires a string of the form 'arg=value'"
 			build_args="${build_args} -D${arg}=${value}"
 			unset arg
 			unset value
@@ -82,8 +75,7 @@ parse_args() {
 			break
 			;;
 		*)
-			echo 'Internal error parsing args' >&2
-			exit 1
+			sh_error 'Internal error parsing args'
 			;;
 		esac
 	done
@@ -91,7 +83,7 @@ parse_args() {
 
 	if [ -z "${pkg_name}" ] || [ -z "${pkg_version}" ] ||
 		[ -z "${build_type}" ]; then
-		error 'Package name, version or buildtype was not provided'
+		sh_error 'Package name, version or buildtype was not provided'
 	fi
 }
 
@@ -101,7 +93,8 @@ generate_version_file() {
 
 is_vaccel() {
 	if [ "${pkg_name}" != "vaccel" ]; then
-		[ "${pkg_name#*"vaccel"}" = "${pkg_name}" ] && exit 1
+		[ "${pkg_name#*"vaccel"}" = "${pkg_name}" ] &&
+			sh_error "Package name must start with 'vaccel'"
 		return 1 # false
 	fi
 	return 0 # true
@@ -252,7 +245,7 @@ main() {
 
 	generate_version_file
 
-	cd "${MESON_DIST_ROOT}" || error "Could not change to ${MESON_DIST_ROOT}"
+	cd "${MESON_DIST_ROOT}" || sh_error "Could not change to ${MESON_DIST_ROOT}"
 
 	printf "%s\n\n" 'Generating binary distribution'
 	generate_bin_pkg

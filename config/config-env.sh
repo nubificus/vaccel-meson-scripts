@@ -5,24 +5,16 @@ set -e
 
 _CONFIG_DEF_CFG_DIR=$(cd -- "$(dirname -- "$0")" >/dev/null && pwd -P)
 CONFIG_DEF_CFG_DIR=${CONFIG_DEF_CFG_DIR:-"${_CONFIG_DEF_CFG_DIR}"}
-if [ -n "${CONFIG_SCRIPTS_DIR}" ]; then
-	CONFIG_PKG_CFG_DIR="${CONFIG_SCRIPTS_DIR}/config"
+
+_SH_SCRIPTS_DIR="${CONFIG_DEF_CFG_DIR}/.."
+# shellcheck disable=SC2034
+SH_SCRIPT_NAME="$(basename "$0")"
+# shellcheck source=/dev/null
+. "${_SH_SCRIPTS_DIR}/_sh-common.sh"
+
+if [ -n "${CONFIG_PKG_SCRIPTS_DIR}" ]; then
+	CONFIG_PKG_CFG_DIR="${CONFIG_PKG_SCRIPTS_DIR}/config"
 fi
-
-_config_log_error() {
-	_config_error_msg=${1:-'Unknown error'}
-	_config_error_code=${2:-1}
-	printf "%s: %s [error %s]\n" \
-		"${_CONFIG_FILE_NAME}" \
-		"${_config_error_msg}" "${_config_error_code}" \
-		>&2
-}
-
-_config_error() {
-	_config_error_code=${2:-1}
-	_config_log_error "$1" "${_config_error_code}"
-	exit "${_config_error_code}"
-}
 
 _config_bool_to_string() {
 	if [ "$1" -eq 1 ]; then
@@ -34,20 +26,19 @@ _config_bool_to_string() {
 
 _config_check_pkgconfig_exists() {
 	if ! which pkg-config >/dev/null; then
-		_config_error "'pkg-config' is not installed"
+		sh_error "'pkg-config' is not installed"
 	fi
 }
 
 _config_check_pkg_exists() {
 	if ! pkg-config --exists "$1"; then
-		_config_error \
-			"Package '$1' not found (using 'pkg-config')"
+		sh_error "Package '$1' not found (using 'pkg-config')"
 	fi
 }
 
 _config_get_pkgconfig_vars() {
 	if [ -z "$1" ]; then
-		_config_error "No package specified"
+		sh_error "No package specified"
 	fi
 
 	_config_pkg_prefix="$(pkg-config --variable=prefix "$1")"
@@ -164,7 +155,7 @@ config_set_env() {
 	_config_check_pkgconfig_exists
 
 	if [ -z "${CONFIG_PKG}" ]; then
-		_config_error "'\$CONFIG_PKG' is not set"
+		sh_error "'\$CONFIG_PKG' is not set"
 	fi
 
 	if [ -z "${MESON_BUILD_ROOT}" ]; then
