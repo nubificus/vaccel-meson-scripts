@@ -104,7 +104,18 @@ _config_set_pkg_override_vars() {
 
 _config_set_valgrind_cmd() {
 	CONFIG_DEF_VALGRIND_SUPP="${CONFIG_DEF_CFG_DIR}/valgrind.supp"
-	CONFIG_VALGRIND_CMD="${CONFIG_VALGRIND_CMD} --suppressions=${CONFIG_DEF_VALGRIND_SUPP}"
+	CONFIG_VALGRIND_CMD="valgrind ${CONFIG_VALGRIND_ARGS} --suppressions=${CONFIG_DEF_VALGRIND_SUPP}"
+
+	[ -n "${CONFIG_VALGRIND_EXTRA_ARGS}" ] &&
+		CONFIG_VALGRIND_CMD="${CONFIG_VALGRIND_CMD} ${CONFIG_VALGRIND_EXTRA_ARGS}"
+
+	if [ "$1" -eq 1 ]; then
+		[ -n "${CONFIG_64_VALGRIND_EXTRA_ARGS}" ] &&
+			CONFIG_VALGRIND_CMD="${CONFIG_VALGRIND_CMD} ${CONFIG_64_VALGRIND_EXTRA_ARGS}"
+	else
+		[ -n "${CONFIG_32_VALGRIND_EXTRA_ARGS}" ] &&
+			CONFIG_VALGRIND_CMD="${CONFIG_VALGRIND_CMD} ${CONFIG_32_VALGRIND_EXTRA_ARGS}"
+	fi
 
 	pkg_valgrind_supp="${CONFIG_PKG_CFG_DIR}/valgrind.supp"
 	if [ -f "${pkg_valgrind_supp}" ]; then
@@ -126,7 +137,7 @@ _config_set_common_vars() {
 	fi
 
 	if [ "${CONFIG_USE_VALGRIND}" -eq 1 ]; then
-		_config_set_valgrind_cmd
+		_config_set_valgrind_cmd "${CONFIG_ARCH_IS_64BIT}"
 
 		# shellcheck disable=SC2034
 		CONFIG_WRAPPER_CMD=${CONFIG_VALGRIND_CMD}
@@ -136,14 +147,61 @@ _config_set_common_vars() {
 	export VACCEL_LOG_LEVEL="${CONFIG_VACCEL_LOG_LEVEL}"
 }
 
+_config_process_pkg_export_vars() {
+	for pair in ${CONFIG_EXPORT_VARS} ${CONFIG_EXPORT_EXTRA_VARS}; do
+		case "${pair}" in
+		*=*) export "${pair?}" ;;
+		esac
+	done
+
+	if [ "$1" -eq 1 ]; then
+		for pair in ${CONFIG_64_EXPORT_VARS} \
+			${CONFIG_64_EXPORT_EXTRA_VARS}; do
+			case "${pair}" in
+			*=*) export "${pair?}" ;;
+			esac
+		done
+	else
+		for pair in ${CONFIG_32_EXPORT_VARS} \
+			${CONFIG_32_EXPORT_EXTRA_VARS}; do
+			case "${pair}" in
+			*=*) export "${pair?}" ;;
+			esac
+		done
+	fi
+
+	for pair in ${CONFIG_VALGRIND_EXPORT_VARS} \
+		${CONFIG_VALGRIND_EXPORT_EXTRA_VARS}; do
+		case "${pair}" in
+		*=*) export "${pair?}" ;;
+		esac
+	done
+
+	if [ "$1" -eq 1 ]; then
+		for pair in ${CONFIG_64_VALGRIND_EXPORT_VARS} \
+			${CONFIG_64_VALGRIND_EXPORT_EXTRA_VARS}; do
+			case "${pair}" in
+			*=*) export "${pair?}" ;;
+			esac
+		done
+	else
+		for pair in ${CONFIG_32_VALGRIND_EXPORT_VARS} \
+			${CONFIG_32_VALGRIND_EXPORT_EXTRA_VARS}; do
+			case "${pair}" in
+			*=*) export "${pair?}" ;;
+			esac
+		done
+	fi
+}
+
 _config_print_vars() {
 	printf "Arch is 64bit      : %s\n" \
 		"$(_config_bool_to_string "${CONFIG_ARCH_IS_64BIT}")"
 	printf "Default config dir : %s\n" "${CONFIG_DEF_CFG_DIR}"
-	printf "Package            : %s\n" "${CONFIG_PKG}"
+	printf "Package            : %s\n" "${CONFIG_PKG:-Undefined}"
 	printf "Package config dir : %s\n" "${CONFIG_PKG_CFG_DIR}"
 
-	_config_print_pkg_path_vars
+	[ -n "${CONFIG_PKG}" ] && _config_print_pkg_path_vars
 
 	printf "\n"
 }
@@ -152,19 +210,19 @@ config_set_env() {
 	# shellcheck source=/dev/null
 	. "${CONFIG_DEF_CFG_DIR}/variables.env"
 
-	_config_check_pkgconfig_exists
+	if [ -n "${CONFIG_PKG}" ]; then
+		_config_check_pkgconfig_exists
 
-	if [ -z "${CONFIG_PKG}" ]; then
-		sh_error "'\$CONFIG_PKG' is not set"
+		if [ -z "${MESON_BUILD_ROOT}" ]; then
+			_config_check_pkg_exists "${CONFIG_PKG}"
+		fi
+
+		_config_set_pkg_path_vars "${CONFIG_PKG}" "${MESON_BUILD_ROOT}"
 	fi
 
-	if [ -z "${MESON_BUILD_ROOT}" ]; then
-		_config_check_pkg_exists "${CONFIG_PKG}"
-	fi
-
-	_config_set_pkg_path_vars "${CONFIG_PKG}" "${MESON_BUILD_ROOT}"
 	_config_set_pkg_override_vars "${CONFIG_PKG_CFG_DIR}"
 	_config_set_common_vars
+	_config_process_pkg_export_vars "${CONFIG_ARCH_IS_64BIT}"
 
 	_config_print_vars
 }
