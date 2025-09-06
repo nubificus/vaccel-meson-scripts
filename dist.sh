@@ -20,7 +20,7 @@ export DEBEMAIL
 
 parse_args() {
 	short_opts='n:v:t:a:'
-	long_opts='pkg-name:,pkg-version:,build-type:,build-arg:,skip-deb'
+	long_opts='pkg-name:,pkg-version:,build-type:,build-arg:,skip-subprojects,skip-deb'
 
 	if ! getopt=$(getopt -o "${short_opts}" --long "${long_opts}" \
 		-n "${SCRIPT_NAME}" -- "$@"); then
@@ -30,7 +30,9 @@ parse_args() {
 	eval set -- "$getopt"
 
 	build_args=
+	install_args=
 	skip_deb=0
+	skip_subprojects=0
 	while true; do
 		case "$1" in
 		'-n' | '--pkg-name')
@@ -65,6 +67,11 @@ parse_args() {
 			unset value
 			shift 2
 			;;
+		'--skip-subprojects')
+			# Skip subproject installation
+			skip_subprojects=1
+			shift
+			;;
 		'--skip-deb')
 			# Skip deb generation
 			skip_deb=1
@@ -79,7 +86,9 @@ parse_args() {
 			;;
 		esac
 	done
+
 	build_args="--buildtype=${build_type} ${build_args}"
+	[ "${skip_subprojects}" -eq 1 ] && install_args="--skip-subprojects"
 
 	if [ -z "${pkg_name}" ] || [ -z "${pkg_version}" ] ||
 		[ -z "${build_type}" ]; then
@@ -108,7 +117,7 @@ generate_bin_pkg() {
 	rm -rf ../"${bin_tar_name}" build
 	eval meson setup "${build_args}" --prefix="${bin_prefix}/usr" build
 	meson compile -C build
-	meson install -C build
+	eval meson install "${install_args}" -C build
 	tar cfz ../"${bin_tar_name}" -C build "${bin_name}"
 	rm -rf build
 
