@@ -3,6 +3,16 @@
 
 set -e
 
+sh_print_arch() {
+	arch="$(uname -m | tr ' ' '_' | tr '/' '-')"
+	if [ "$(getconf LONG_BIT)" -eq 32 ]; then
+		arch="$(printf '%s' "${arch}" | sed 's/x86_64/i686/')"
+		arch="$(printf '%s' "${arch}" | sed 's/aarch64/armv7l/')"
+	fi
+	printf '%s\n' "${arch}"
+	unset arch
+}
+
 sh_log_error() {
 	error=${1:-'Unknown error'}
 	code=${2:-1}
