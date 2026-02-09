@@ -110,8 +110,8 @@ is_vaccel() {
 }
 
 generate_bin_pkg() {
-	bin_name="${pkg_name}-${pkg_version}"
-	bin_tar_name="${bin_name}-bin.tar.gz"
+	bin_name="${pkg_name}_${pkg_version}"
+	bin_tar_name="${bin_name}_$(sh_print_arch).tar.gz"
 	bin_prefix="${MESON_DIST_ROOT}/build/${bin_name}"
 
 	rm -rf ../"${bin_tar_name}" build

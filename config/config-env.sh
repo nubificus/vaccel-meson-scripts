@@ -136,6 +136,8 @@ _config_set_common_vars() {
 		CONFIG_ARCH_IS_64BIT=0
 	fi
 
+	CONFIG_ARCH="$(sh_print_arch)"
+
 	if [ "${CONFIG_USE_VALGRIND}" -eq 1 ]; then
 		_config_set_valgrind_cmd "${CONFIG_ARCH_IS_64BIT}"
 
@@ -195,6 +197,7 @@ _config_process_pkg_export_vars() {
 }
 
 _config_print_vars() {
+	printf "Arch               : %s\n" "${CONFIG_ARCH}"
 	printf "Arch is 64bit      : %s\n" \
 		"$(_config_bool_to_string "${CONFIG_ARCH_IS_64BIT}")"
 	printf "Default config dir : %s\n" "${CONFIG_DEF_CFG_DIR}"
