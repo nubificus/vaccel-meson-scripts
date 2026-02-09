@@ -11,8 +11,7 @@ SH_SCRIPT_NAME=$(basename "$0")
 
 REPO_URL=$(git remote get-url origin |
 	sed 's/git@github.com:\(.*\)\.git/https:\/\/github.com\/\1/g')
-UPFULLNAME='Anastassios Nanos'
-UPEMAIL='ananos@nubificus.co.uk'
+UPSTREAM_CONTACT='vaccel@nubificus.co.uk'
 DEBFULLNAME='Kostis Papazafeiropoulos'
 export DEBFULLNAME
 DEBEMAIL='papazof@nubificus.co.uk'
@@ -149,12 +148,14 @@ deb_process_rules() {
 }
 
 deb_process_copyright() {
-	sed -i "s/Upstream-Contact.*/Upstream-Contact: ${UPFULLNAME} <${UPEMAIL}>/g" \
+	sed -i "s/Upstream-Contact.*/Upstream-Contact: ${UPSTREAM_CONTACT}/g" \
 		debian/copyright
 	sed -i "s/Source.*/Source: $(echo "$REPO_URL" | sed 's/\//\\\//g')/g" \
 		debian/copyright
-	sed -i -z -e \
-		"s/\(Copyright:\)\n[^\n]\+[\n]*[^\n]*\n\(License\)/\1 2020-$(date +"%Y") Nubificus LTD <info@nubificus.co.uk>\n\2/g" \
+	perl -0777 -i.bak -spe \
+		's|Copyright:.*\n(?:[ \t].*\n)*(?=License:)|Copyright:\n 2020-$year Nubificus Ltd.\n|g' \
+		-- \
+		-year="$(date +"%Y")" \
 		debian/copyright
 	sed -i -z -e "s/\n#.*[\n]*//g" debian/copyright
 }
