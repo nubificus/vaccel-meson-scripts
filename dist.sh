@@ -114,9 +114,19 @@ generate_bin_pkg() {
 	bin_prefix="${MESON_DIST_ROOT}/build/${bin_name}"
 
 	rm -rf ../"${bin_tar_name}" build
-	eval meson setup "${build_args}" --prefix="${bin_prefix}/usr" build
-	meson compile -C build
-	eval meson install "${install_args}" -C build
+
+	if [ -f "${deb_pkg_file}" ]; then
+		mkdir -p "build/${bin_name}"
+		dpkg -x "${deb_pkg_file}" "build/${bin_name}"
+	else
+		eval meson setup "${build_args}" \
+			--wrap-mode=nodownload \
+			--prefix="${bin_prefix}/usr" \
+			build
+		meson compile -C build
+		eval meson install "${install_args}" -C build
+	fi
+
 	tar cfz ../"${bin_tar_name}" -C build "${bin_name}"
 	rm -rf build
 
@@ -132,7 +142,7 @@ deb_check_requirements() {
 		fi
 	done
 	if [ -n "${missing_pkgs}" ]; then
-		echo "Not building a deb package: Packages ${missing_pkgs} missing"
+		echo "Not building a deb package: Packages${missing_pkgs} missing"
 		return 1
 	fi
 	return 0
@@ -240,8 +250,8 @@ generate_deb_pkg() {
 	dpkg-buildpackage -us -uc
 	rm -rf obj-* debian
 
-	printf "\n%s\n\n" \
-		"Created $(ls "$(dirname "${MESON_DIST_ROOT}")"/"${pkg_name}_${pkg_version}"*.deb)"
+	deb_pkg_file="$(ls "$(dirname "${MESON_DIST_ROOT}")"/"${pkg_name}_${pkg_version}"*.deb)"
+	printf "\n%s\n\n" "Created ${deb_pkg_file}"
 }
 
 main() {
@@ -257,13 +267,13 @@ main() {
 
 	cd "${MESON_DIST_ROOT}" || sh_error "Could not change to ${MESON_DIST_ROOT}"
 
-	printf "%s\n\n" 'Generating binary distribution'
-	generate_bin_pkg
-
 	if [ "${skip_deb}" -eq 0 ]; then
 		printf "%s\n\n" 'Generating deb package'
 		generate_deb_pkg
 	fi
+
+	printf "%s\n\n" 'Generating binary distribution'
+	generate_bin_pkg
 }
 
 main "$@"
