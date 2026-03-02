@@ -6,11 +6,9 @@ set -e
 _CONFIG_DEF_CFG_DIR=$(cd -- "$(dirname -- "$0")" >/dev/null && pwd -P)
 CONFIG_DEF_CFG_DIR=${CONFIG_DEF_CFG_DIR:-"${_CONFIG_DEF_CFG_DIR}"}
 
-_SH_SCRIPTS_DIR="${CONFIG_DEF_CFG_DIR}/.."
-# shellcheck disable=SC2034
-SH_SCRIPT_NAME="$(basename "$0")"
+SH_SCRIPTS_DIR="${SH_SCRIPTS_DIR:-"${CONFIG_DEF_CFG_DIR}/.."}"
 # shellcheck source=/dev/null
-. "${_SH_SCRIPTS_DIR}/_sh-common.sh"
+. "${SH_SCRIPTS_DIR}/_sh-common.sh"
 
 if [ -n "${CONFIG_PKG_SCRIPTS_DIR}" ]; then
 	CONFIG_PKG_CFG_DIR="${CONFIG_PKG_SCRIPTS_DIR}/config"
