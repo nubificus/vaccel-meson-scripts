@@ -3,8 +3,8 @@
 
 set -e
 
-_CONFIG_DEF_CFG_DIR=$(cd -- "$(dirname -- "$0")" >/dev/null && pwd -P)
-CONFIG_DEF_CFG_DIR=${CONFIG_DEF_CFG_DIR:-"${_CONFIG_DEF_CFG_DIR}"}
+_CONFIG_DEF_CFG_DIR="$(cd -- "$(dirname -- "$0")" >/dev/null && pwd -P)"
+CONFIG_DEF_CFG_DIR="${CONFIG_DEF_CFG_DIR:-"${_CONFIG_DEF_CFG_DIR}"}"
 
 SH_SCRIPTS_DIR="${SH_SCRIPTS_DIR:-"${CONFIG_DEF_CFG_DIR}/.."}"
 # shellcheck source=/dev/null
@@ -13,6 +13,8 @@ SH_SCRIPTS_DIR="${SH_SCRIPTS_DIR:-"${CONFIG_DEF_CFG_DIR}/.."}"
 if [ -n "${CONFIG_PKG_SCRIPTS_DIR}" ]; then
 	CONFIG_PKG_CFG_DIR="${CONFIG_PKG_SCRIPTS_DIR}/config"
 fi
+
+CONFIG_USE_VALGRIND="${CONFIG_USE_VALGRIND:-0}"
 
 _config_bool_to_string() {
 	if [ "$1" -eq 1 ]; then
