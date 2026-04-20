@@ -7,13 +7,16 @@ on:
     types: [synchronize, labeled]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions: read-all
 
 jobs:
   check-pr-status:
     name: Check PR status
-    if: ${{ github.event.pull_request.base.ref == 'main' }}
+    if: github.event.pull_request.base.ref == 'main'
     uses: nubificus/vaccel/.github/workflows/check-pr-status.yml@main
     with:
       pr-number: >-
@@ -25,7 +28,7 @@ jobs:
     needs: check-pr-status
     name: Add Git Trailers to PR commits
     if: >-
-      ${{ github.event.pull_request.base.ref == 'main' &&
-        needs.check-pr-status.outputs.is-approved == 'true' }}
+      github.event.pull_request.base.ref == 'main' &&
+      needs.check-pr-status.outputs.is-approved == 'true'
     uses: nubificus/vaccel/.github/workflows/add-git-trailers.yml@main
     secrets: inherit
