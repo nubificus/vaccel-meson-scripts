@@ -22,7 +22,7 @@ on:
         type: string
         default: 'auto_features=enabled'
     secrets:
-      GIT_CLONE_PAT:
+      VACCEL_BOT_PRIVATE_KEY:
         required: false
       AWS_ACCESS_KEY:
         required: false
@@ -40,31 +40,62 @@ jobs:
       matrix:
         arch: ["${{ fromJSON(inputs.runner-archs) }}"]
       fail-fast: false
-    permissions:
-      contents: read
-      packages: read
-      statuses: write
     steps:
+      - name: Parse repository names
+        id: parse-repos
+        env:
+          ACTIONS_REPO: ${{ inputs.actions-repo }}
+        run: |
+          {
+            echo "repo-name=$(basename "$GITHUB_REPOSITORY")"
+            echo "actions-repo-name=$(basename "$ACTIONS_REPO")"
+          } >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Generate initialization vaccel-bot token
+        id: generate-init-token
+        if: vars.VACCEL_BOT_CLIENT_ID
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.VACCEL_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.VACCEL_BOT_PRIVATE_KEY }}
+          repositories: |
+            ${{ steps.parse-repos.outputs.repo-name }}
+            ${{ steps.parse-repos.outputs.actions-repo-name }}
+          permission-contents: read
+
       - name: Checkout .github directory
         uses: actions/checkout@v5
         with:
           sparse-checkout: .github
           repository: ${{ inputs.actions-repo }}
           ref: ${{ env.ACTIONS_REV }}
+          token: ${{ steps.generate-init-token.outputs.token || github.token }}
 
       - name: Initialize workspace
         uses: ./.github/actions/initialize-workspace
         with:
           fetch-depth: 0
           remote-actions-repo: ${{ inputs.actions-repo }}
-          token: ${{ secrets.GIT_CLONE_PAT || github.token }}
+          token: ${{ steps.generate-init-token.outputs.token || github.token }}
+
+      - name: Generate linter vaccel-bot token
+        id: generate-linter-token
+        if: vars.VACCEL_BOT_CLIENT_ID
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.VACCEL_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.VACCEL_BOT_PRIVATE_KEY }}
+          permission-contents: read
+          permission-packages: read
+          permission-statuses: write
 
       - name: Run super-linter
         uses: super-linter/super-linter@v8
         env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ENABLE_GITHUB_ACTIONS_STEP_SUMMARY: false
+          GITHUB_TOKEN: >-
+            ${{ steps.generate-linter-token.outputs.token || github.token }}
+          ENABLE_GITHUB_PULL_REQUEST_SUMMARY_COMMENT: false
           VALIDATE_ALL_CODEBASE: true
           VALIDATE_PYTHON_RUFF: true
           VALIDATE_BASH: true
